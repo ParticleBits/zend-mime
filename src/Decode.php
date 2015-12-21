@@ -51,7 +51,9 @@ class Decode
         // no more parts, find end boundary
         $p = strpos($body, '--' . $boundary . '--', $start);
         if ($p===false) {
-            throw new Exception\RuntimeException('Not a valid Mime Message: End Missing');
+            // instead of throwing a runtime error, just set $p to the end
+            $p = strlen($body);
+            // throw new Exception\RuntimeException('Not a valid Mime Message: End Missing');
         }
 
         // the remaining part also needs to be parsed:
