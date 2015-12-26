@@ -17,6 +17,7 @@ class Mime
     const TYPE_OCTETSTREAM = 'application/octet-stream';
     const TYPE_TEXT = 'text/plain';
     const TYPE_HTML = 'text/html';
+    const TYPE_ENRICHED = 'text/enriched';
     const ENCODING_7BIT = '7bit';
     const ENCODING_8BIT = '8bit';
     const ENCODING_QUOTEDPRINTABLE = 'quoted-printable';
