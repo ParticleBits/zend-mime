@@ -28,6 +28,7 @@ class Mime
     const MULTIPART_ALTERNATIVE = 'multipart/alternative';
     const MULTIPART_MIXED = 'multipart/mixed';
     const MULTIPART_RELATED = 'multipart/related';
+    const MULTIPART_RELATIVE = 'multipart/relative';
     const MESSAGE_RFC822 = 'message/rfc822';
 
     protected $boundary;
