@@ -9,12 +9,14 @@
 
 namespace ZendTest\Mime;
 
+use PHPUnit\Framework\TestCase;
 use Zend\Mime;
+use Zend\Mime\Message;
 
 /**
  * @group      Zend_Mime
  */
-class MessageTest extends \PHPUnit_Framework_TestCase
+class MessageTest extends TestCase
 {
     public function testMultiPart()
     {
@@ -112,6 +114,62 @@ EOD;
         $this->assertEquals('12', $part2->id);
     }
 
+    /**
+     * check if decoding a string into a \Zend\Mime\Message object works
+     *
+     */
+    public function testDecodeMimeMessageNoHeader()
+    {
+        $text = <<<EOD
+This is a MIME-encapsulated message
+
+--=_af4357ef34b786aae1491b0a2d14399f
+
+The original message was received at Fri, 16 Aug 2013 00:00:48 -0700
+from localhost.localdomain [127.0.0.1]
+End content
+
+--=_af4357ef34b786aae1491b0a2d14399f
+Content-Type: image/gif
+
+This is a test
+--=_af4357ef34b786aae1491b0a2d14399f--
+EOD;
+        $res = Mime\Message::createFromMessage($text, '=_af4357ef34b786aae1491b0a2d14399f');
+
+        $parts = $res->getParts();
+        $this->assertEquals(2, count($parts));
+
+        $part1 = $parts[0];
+        $part1Content = $part1->getRawContent();
+        $this->assertContains('The original message', $part1Content);
+        $this->assertContains('End content', $part1Content);
+
+        $part2 = $parts[1];
+        $this->assertEquals('image/gif', $part2->type);
+    }
+
+    /**
+     * Check if decoding a string that is not a multipart message works
+     */
+    public function testDecodeNonMultipartMimeMessage()
+    {
+        $text = <<<EOD
+Content-Type: image/gif
+
+This is a test
+EOD;
+        $res = Mime\Message::createFromMessage($text);
+
+        $parts = $res->getParts();
+        $this->assertEquals(1, count($parts));
+
+        $part1 = $parts[0];
+        $part1Content = $part1->getRawContent();
+        $this->assertEquals('This is a test', $part1Content);
+        $this->assertEquals('image/gif', $part1->type);
+    }
+
     public function testNonMultipartMessageShouldNotRemovePartFromMessage()
     {
         $message = new Mime\Message();  // No Parts
@@ -133,5 +191,36 @@ EOD;
         $mimeMessage->setParts([]);
 
         $this->assertEquals('', $mimeMessage->generateMessage());
+    }
+
+    public function testDuplicatePartAddedWillThrowException()
+    {
+        $this->expectException(Mime\Exception\InvalidArgumentException::class);
+
+        $message = new Mime\Message();
+        $part    = new Mime\Part('This is a test');
+        $message->addPart($part);
+        $message->addPart($part);
+    }
+
+    public function testFromStringWithCrlfAndRfc2822FoldedHeaders()
+    {
+        // This is a fixture as provided by many mailservers
+        // e.g. cyrus or dovecot
+        $eol = "\r\n";
+        $fixture = 'This is a MIME-encapsulated message' . $eol . $eol
+            . '--=_af4357ef34b786aae1491b0a2d14399f' . $eol
+            . 'Content-Type: text/plain' . $eol
+            . 'Content-Disposition: attachment;' . $eol
+            . "\t" . 'filename="test.txt"' . $eol // Valid folding
+            . $eol
+            . 'This is a test' . $eol
+            . '--=_af4357ef34b786aae1491b0a2d14399f--';
+
+        $message = Message::createFromMessage($fixture, '=_af4357ef34b786aae1491b0a2d14399f', $eol);
+        $parts = $message->getParts();
+
+        $this->assertEquals(1, count($parts));
+        $this->assertEquals('attachment; filename="test.txt"', $parts[0]->getDisposition());
     }
 }
