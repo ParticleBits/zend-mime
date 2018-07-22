@@ -9,19 +9,22 @@
 
 namespace ZendTest\Mime;
 
+use PHPUnit\Framework\TestCase;
 use Zend\Mime;
 
 /**
  * @group      Zend_Mime
  */
-class MimeTest extends \PHPUnit_Framework_TestCase
+class MimeTest extends TestCase
 {
+    // @codingStandardsIgnoreStart
     /**
      * Stores the original set timezone
      *
      * @var string
      */
     private $_originaltimezone;
+    // @codingStandardsIgnoreEnd
 
     /**
      * Setup environment
@@ -52,13 +55,17 @@ class MimeTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($m3->boundary(), $myBoundary);
     }
 
+    // @codingStandardsIgnoreStart
     public function testIsPrintable_notPrintable()
     {
+        // @codingStandardsIgnoreEnd
         $this->assertFalse(Mime\Mime::isPrintable('Test with special chars: �����'));
     }
 
+    // @codingStandardsIgnoreStart
     public function testIsPrintable_isPrintable()
     {
+        // @codingStandardsIgnoreEnd
         $this->assertTrue(Mime\Mime::isPrintable('Test without special chars'));
     }
 
@@ -73,6 +80,38 @@ class MimeTest extends \PHPUnit_Framework_TestCase
 
         $qp = Mime\Mime::encodeQuotedPrintable($text);
         $this->assertEquals(quoted_printable_decode($qp), $text);
+    }
+
+    public function testQuotedPrintableNoDotAtBeginningOfLine()
+    {
+        $text = str_repeat('a', Mime\Mime::LINELENGTH) . '.bbb';
+        $qp = Mime\Mime::encodeQuotedPrintable($text);
+
+        $expected = str_repeat('a', Mime\Mime::LINELENGTH) . "=\n=2Ebbb";
+
+        $this->assertEquals($expected, $qp);
+    }
+
+    public function testQuotedPrintableSpacesAndDots()
+    {
+        $text = str_repeat(' ', Mime\Mime::LINELENGTH) . str_repeat('.', Mime\Mime::LINELENGTH);
+        $qp = Mime\Mime::encodeQuotedPrintable($text);
+
+        $expected = str_repeat(' ', Mime\Mime::LINELENGTH - 1)
+            . "=20=\n=2E"
+            . str_repeat('.', Mime\Mime::LINELENGTH - 1);
+
+        $this->assertEquals($expected, $qp);
+    }
+
+    public function testQuotedPrintableDoesNotBreakOctets()
+    {
+        $text = str_repeat('a', Mime\Mime::LINELENGTH - 2) . '=.bbb';
+        $qp = Mime\Mime::encodeQuotedPrintable($text);
+
+        $expected = str_repeat('a', Mime\Mime::LINELENGTH - 2) . "=\n=3D.bbb";
+
+        $this->assertEquals($expected, $qp);
     }
 
     public function testBase64()
@@ -100,16 +139,19 @@ class MimeTest extends \PHPUnit_Framework_TestCase
 
     public static function dataTestEncodeMailHeaderQuotedPrintable()
     {
+        // @codingStandardsIgnoreStart
         return [
             ["äöü", "UTF-8", "=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?="],
             ["äöü ", "UTF-8", "=?UTF-8?Q?=C3=A4=C3=B6=C3=BC?="],
             ["Gimme more €", "UTF-8", "=?UTF-8?Q?Gimme=20more=20=E2=82=AC?="],
-            ["Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!", "UTF-8", "=?UTF-8?Q?Alle=20meine=20Entchen=20schwimmen=20in=20dem=20See,=20?=
- =?UTF-8?Q?schwimmen=20in=20dem=20See,=20K=C3=B6pfchen=20in=20das=20?=
- =?UTF-8?Q?Wasser,=20Schw=C3=A4nzchen=20in=20die=20H=C3=B6h!?="],
+            ["Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!", "UTF-8", "=?UTF-8?Q?Alle=20meine=20Entchen=20schwimmen=20in=20dem=20See=2C=20?=\n =?UTF-8?Q?schwimmen=20in=20dem=20See=2C=20K=C3=B6pfchen=20in=20das=20?=\n =?UTF-8?Q?Wasser=2C=20Schw=C3=A4nzchen=20in=20die=20H=C3=B6h!?="],
             ["ääääääääääääääääääääääääääääääääää", "UTF-8", "=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?="],
             ["A0", "UTF-8", "=?UTF-8?Q?A0?="],
+            ["äääääääääääääää ä", "UTF-8", "=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=20?=\n =?UTF-8?Q?=C3=A4?="],
+            ["äääääääääääääää äääääääääääääää", "UTF-8", "=?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=20?=\n =?UTF-8?Q?=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?="],
+            ["ä äääääääääääääää", "UTF-8", "=?UTF-8?Q?=C3=A4=20=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4=C3=A4?="],
         ];
+        // @codingStandardsIgnoreEnd
     }
 
     /**
@@ -125,9 +167,33 @@ class MimeTest extends \PHPUnit_Framework_TestCase
     {
         return [
             ["äöü", "UTF-8", "=?UTF-8?B?w6TDtsO8?="],
+            // @codingStandardsIgnoreStart
             ["Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!", "UTF-8", "=?UTF-8?B?QWxsZSBtZWluZSBFbnRjaGVuIHNjaHdpbW1lbiBpbiBkZW0gU2VlLCBzY2h3?=
  =?UTF-8?B?aW1tZW4gaW4gZGVtIFNlZSwgS8O2cGZjaGVuIGluIGRhcyBXYXNzZXIsIFNj?=
  =?UTF-8?B?aHfDpG56Y2hlbiBpbiBkaWUgSMO2aCE=?="],
+            // @codingStandardsIgnoreEnd
+        ];
+    }
+
+    /**
+     * base64 chunk are 4 chars long
+     * try to encode/decode with 4 line length
+     * @dataProvider dataTestEncodeMailHeaderBase64wrap
+     */
+    public function testEncodeMailHeaderBase64wrap($str)
+    {
+        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, "UTF-8", 20)));
+        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, "UTF-8", 21)));
+        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, "UTF-8", 22)));
+        $this->assertEquals($str, Mime\Decode::decodeQuotedPrintable(Mime\Mime::encodeBase64Header($str, "UTF-8", 23)));
+    }
+
+    public static function dataTestEncodeMailHeaderBase64wrap()
+    {
+        return [
+            ["äöüäöüäöüäöüäöüäöüäöü"],
+            ["Alle meine Entchen schwimmen in dem See, schwimmen in dem See, "
+                . "Köpfchen in das Wasser, Schwänzchen in die Höh!"]
         ];
     }
 
@@ -165,8 +231,10 @@ class MimeTest extends \PHPUnit_Framework_TestCase
     {
         return [
             ['äöü', 'quoted-printable', '=C3=A4=C3=B6=C3=BC'],
+            // @codingStandardsIgnoreStart
             ['Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!', 'quoted-printable', 'Alle meine Entchen schwimmen in dem See, schwimmen in dem See, K=C3=B6pfche=
 n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!'],
+            // @codingStandardsIgnoreEnd
             ['foobar', 'base64', 'Zm9vYmFyCg=='],
         ];
     }
@@ -193,18 +261,42 @@ n in das Wasser, Schw=C3=A4nzchen in die H=C3=B6h!'],
      */
     public function testLineLengthInQuotedPrintableHeaderEncoding()
     {
-        $subject = "Alle meine Entchen schwimmen in dem See, schwimmen in dem See, Köpfchen in das Wasser, Schwänzchen in die Höh!";
+        $subject = "Alle meine Entchen schwimmen in dem See, schwimmen in dem See, "
+            . "Köpfchen in das Wasser, Schwänzchen in die Höh!";
         $encoded = Mime\Mime::encodeQuotedPrintableHeader($subject, "UTF-8", 100);
         foreach (explode(Mime\Mime::LINEEND, $encoded) as $line) {
-            if (strlen($line) > 100) {
-                $this->fail("Line '" . $line . "' is " . strlen($line) . " chars long, only 100 allowed.");
-            }
+            $this->assertLessThanOrEqual(
+                100,
+                strlen($line),
+                "Line '" . $line . "' is " . strlen($line) . " chars long, only 100 allowed."
+            );
         }
         $encoded = Mime\Mime::encodeQuotedPrintableHeader($subject, "UTF-8", 40);
         foreach (explode(Mime\Mime::LINEEND, $encoded) as $line) {
-            if (strlen($line) > 40) {
-                $this->fail("Line '" . $line . "' is " . strlen($line) . " chars long, only 40 allowed.");
-            }
+            $this->assertLessThanOrEqual(
+                40,
+                strlen($line),
+                "Line '" . $line . "' is " . strlen($line) . " chars long, only 40 allowed."
+            );
         }
+    }
+
+    public function dataTestCharsetDetection()
+    {
+        return [
+            ["ASCII", "test"],
+            ["ASCII", "=?ASCII?Q?test?="],
+            ["UTF-8", "=?UTF-8?Q?test?="],
+            ["ISO-8859-1", "=?ISO-8859-1?Q?Pr=FCfung_f=FCr?= Entwerfen von einer MIME kopfzeile"],
+            ["UTF-8", "=?UTF-8?Q?Pr=C3=BCfung=20Pr=C3=BCfung?="]
+        ];
+    }
+
+    /**
+     * @dataProvider dataTestCharsetDetection
+     */
+    public function testCharsetDetection($expected, $string)
+    {
+        $this->assertEquals($expected, Mime\Mime::mimeDetectCharset($string));
     }
 }
